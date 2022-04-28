@@ -1,8 +1,6 @@
 module AuctionSystem where
 
-import Daml.Script
-import DA.List.Total (maximumOn)
-import DA.Assert (assertEq)
+import DA.List.Total (minimumBy)
 
 template Auction with
     seller : Party
@@ -15,13 +13,17 @@ template Auction with
         with buyer: Party
         controller seller
           do create AuctionInvitation with buyer; auction = this
-    
+
     choice EndAuction : ContractId AuctionResult
       with bidIds: [ContractId Bid]
       controller seller
         do
           bids <- mapA fetch bidIds
-          let winningBid = maximumOn (\b -> b.offer.price) bids
+          let earliestAndBiggestPrice : Bid -> Bid -> Ordering
+              earliestAndBiggestPrice a b = case compare b.offer.price a.offer.price of
+                EQ -> compare a.time b.time
+                other -> other
+              winningBid = minimumBy earliestAndBiggestPrice bids
           create AuctionResult with auction = this; winningBid
 
 template AuctionResult
@@ -60,73 +62,3 @@ data Offer = Offer with
   party: Party
   price: Decimal
     deriving (Show, Eq)
-
-repeatToLength : [a] -> Int -> [a]
-repeatToLength xs n = take n $ concatMap (const xs) [1..(n/(length xs) + 1)]  
-
-zipPadding : [a] -> [b] -> [(a,b)]
-zipPadding xs ys =  let xlen = length xs
-                        ylen = length ys
-                    in
-                      if xlen == ylen
-                      then xs `zip` ys
-                      else if xlen < ylen
-                           then (repeatToLength xs ylen) `zip` ys
-                           else xs `zip` (repeatToLength ys xlen)
-
--- | Runs generic test for two parties: Alice & Bob
-genericAuctionTest : Text        -- ^ auction description
-                    -> [Decimal] -- ^ alternate bids for Alice & Bob, e.g. [10.0, 5.0] -> Alice: 10.0, Bob: 5.0
-                    -> Script (Optional (Text, Decimal))
-genericAuctionTest desc bids = do
-  seller <- allocateParty "Seller"
-  participants <- mapA allocateParty ["Alice", "Bob"]
-  auctionId <- submit seller do
-    createCmd Auction with
-      seller = seller
-      description = desc
-  participationIds <- mapA 
-    (\b -> submit seller do exerciseCmd auctionId InviteBidder with buyer = b)
-    participants
-  let participationPairs = participants `zip` participationIds
-  let bidsData = participationPairs `zipPadding` bids
-  allBids <- mapA
-    (\d -> submit d._1._1 do exerciseCmd d._1._2 SubmitBid with offer = Offer with party = d._1._1; price = d._2)
-    bidsData
-  resultId <- submit seller do
-    exerciseCmd auctionId EndAuction with bidIds = allBids
-  maybeAuctionResult <- queryContractId seller resultId
-  return do
-            auctionResult <- maybeAuctionResult
-            winningBid <- auctionResult.winningBid
-            let offer = winningBid.offer
-            return (partyToText offer.party, offer.price)
-
-
-test_findBestBid : Script ()
-test_findBestBid = do 
-  result <- genericAuctionTest 
-                  "Jacek Malczewski, Vicious Circle"
-                  [
-                    10.0 -- Alice
-                  , 11.0 -- Bob
-                  , 13.0 -- Alice
-                  , 13.9 -- Bob
-                  , 15.0 -- Alice
-                  , 17.0 -- Bob
-                  ]
-  let expected = Some ("Bob", 17.0)
-  assertEq expected result
-
-test_findBestBidWithDuplicatedOffers : Script ()
-test_findBestBidWithDuplicatedOffers = do 
-  result <- genericAuctionTest 
-                  "Jacek Malczewski, Siberian Wigilia"
-                  [
-                    9.0  -- Alice
-                  , 10.0 -- Bob
-                  , 10.0 -- Alice
-                  ]
-  let expected = (Some ("Bob", 10.0))
-  assertEq expected result
-
