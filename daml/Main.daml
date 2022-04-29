@@ -79,6 +79,23 @@ test_findBestBidWithDuplicatedOffers = do
   let expected = (Some ("Bob", 10.0))
   assertEq expected result
 
+test_findBestWithWiredDuplicatedOffers : Script ()
+test_findBestWithWiredDuplicatedOffers = do
+  result <- genericAuctionTest
+              "Jacek Malczewski, Vicious Circle"
+              [
+                10.0 -- Alice
+              , 11.0 -- Bob
+              , 14.0 -- Alice
+              , 12.9 -- Bob
+              , 13.0 -- Alice
+              , 14.0 -- Bob
+              , 12.0 -- Alice
+              ]
+  let expected = Some ("Alice", 14.0)
+  assertEq expected result
+
+
 test_noBidsNoResult : Script ()
 test_noBidsNoResult = do
   result <- genericAuctionTest
