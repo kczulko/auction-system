@@ -2,6 +2,12 @@ module AuctionSystem where
 
 import DA.List.Total (minimumBy)
 
+comparing : Ord a => (b -> a) -> b -> b -> Ordering
+comparing f x y = compare (f x) (f y)
+
+instance Semigroup b => Semigroup (a -> a -> b) where
+  (<>) (f) (g) = \x y -> f x y <> g x y
+
 template Auction with
     seller : Party
     description : Text
@@ -19,11 +25,12 @@ template Auction with
       controller seller
         do
           bids <- mapA fetch bidIds
-          let earliestAndBiggestPrice : Bid -> Bid -> Ordering
-              earliestAndBiggestPrice a b = case compare b.offer.price a.offer.price of
-                EQ -> compare a.time b.time
-                other -> other
-              winningBid = minimumBy earliestAndBiggestPrice bids
+          let desc = flip
+              byPrice : Bid -> Decimal
+              byPrice b = b.offer.price
+              byTime : Bid -> Time
+              byTime b = b.time
+              winningBid = minimumBy (desc $ comparing byPrice <> desc (comparing byTime)) bids
           create AuctionResult with auction = this; winningBid
 
 template AuctionResult
