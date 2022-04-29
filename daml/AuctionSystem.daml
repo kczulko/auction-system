@@ -1,12 +1,12 @@
 module AuctionSystem where
 
-import DA.List.Total (minimumBy)
+import DA.List.Total (maximumBy)
 
 comparing : Ord a => (b -> a) -> b -> b -> Ordering
 comparing f x y = compare (f x) (f y)
 
 instance Semigroup b => Semigroup (a -> a -> b) where
-  (<>) (f) (g) = \x y -> f x y <> g x y
+  (<>) f g = \x y -> f x y <> g x y
 
 template Auction with
     seller : Party
@@ -30,7 +30,7 @@ template Auction with
               byPrice b = b.offer.price
               byTime : Bid -> Time
               byTime b = b.time
-              winningBid = minimumBy (desc $ comparing byPrice <> desc (comparing byTime)) bids
+              winningBid = maximumBy (comparing byPrice <> desc (comparing byTime)) bids
           create AuctionResult with auction = this; winningBid
 
 template AuctionResult
@@ -39,7 +39,6 @@ template AuctionResult
     winningBid: Optional Bid
   where
     signatory auction.seller
-
 
 template AuctionInvitation
   with

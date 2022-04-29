@@ -79,8 +79,8 @@ test_findBestBidWithDuplicatedOffers = do
   let expected = (Some ("Bob", 10.0))
   assertEq expected result
 
-test_findBestWithWiredDuplicatedOffers : Script ()
-test_findBestWithWiredDuplicatedOffers = do
+test_findBestBidComplexDuplicatedOffers : Script ()
+test_findBestBidComplexDuplicatedOffers = do
   result <- genericAuctionTest
               "Jacek Malczewski, Vicious Circle"
               [
