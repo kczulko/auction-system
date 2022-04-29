@@ -5,18 +5,17 @@ import DA.Assert (assertEq)
 import DA.Time
 import AuctionSystem
 
-repeatToLength : [a] -> Int -> [a]
-repeatToLength xs n = take n $ concatMap (const xs) [1..(n/(length xs) + 1)]
-
 zipPadding : [a] -> [b] -> [(a,b)]
+zipPadding [] _ = []
+zipPadding _ [] = []
 zipPadding xs ys =  let xlen = length xs
                         ylen = length ys
                     in
                       if xlen == ylen
                       then xs `zip` ys
                       else if xlen < ylen
-                           then (repeatToLength xs ylen) `zip` ys
-                           else xs `zip` (repeatToLength ys xlen)
+                           then zipPadding (take ylen (xs ++ xs))  ys
+                           else zipPadding xs (take xlen (ys ++ ys))
 
 -- | Runs generic test for two parties: Alice & Bob
 genericAuctionTest : Text        -- ^ auction description
@@ -56,26 +55,34 @@ genericAuctionTest desc bids = do
 test_findBestBid : Script ()
 test_findBestBid = do
   result <- genericAuctionTest
-                  "Jacek Malczewski, Vicious Circle"
-                  [
-                    10.0 -- Alice
-                  , 11.0 -- Bob
-                  , 13.0 -- Alice
-                  , 13.9 -- Bob
-                  , 15.0 -- Alice
-                  , 17.0 -- Bob
-                  ]
+              "Jacek Malczewski, Vicious Circle"
+              [
+                10.0 -- Alice
+              , 11.0 -- Bob
+              , 13.0 -- Alice
+              , 13.9 -- Bob
+              , 15.0 -- Alice
+              , 17.0 -- Bob
+              ]
   let expected = Some ("Bob", 17.0)
   assertEq expected result
 
 test_findBestBidWithDuplicatedOffers : Script ()
 test_findBestBidWithDuplicatedOffers = do
   result <- genericAuctionTest
-                  "Jacek Malczewski, Siberian Wigilia"
-                  [
-                    9.0  -- Alice
-                  , 10.0 -- Bob
-                  , 10.0 -- Alice
-                  ]
+              "Jacek Malczewski, Siberian Wigilia"
+              [
+                9.0  -- Alice
+              , 10.0 -- Bob
+              , 10.0 -- Alice
+              ]
   let expected = (Some ("Bob", 10.0))
+  assertEq expected result
+
+test_noBidsNoResult : Script ()
+test_noBidsNoResult = do
+  result <- genericAuctionTest
+              "Jacek Malczewski, Thanatos"
+              []
+  let expected = None
   assertEq expected result
