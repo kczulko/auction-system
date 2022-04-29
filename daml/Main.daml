@@ -82,7 +82,7 @@ test_findBestBidWithDuplicatedOffers = do
 test_findBestBidComplexDuplicatedOffers : Script ()
 test_findBestBidComplexDuplicatedOffers = do
   result <- genericAuctionTest
-              "Jacek Malczewski, Vicious Circle"
+              "Jacek Malczewski, Death"
               [
                 10.0 -- Alice
               , 11.0 -- Bob
