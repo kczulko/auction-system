@@ -103,3 +103,19 @@ test_noBidsNoResult = do
               []
   let expected = None
   assertEq expected result
+
+
+setup : Script()
+setup = script do
+  -- Set up parties
+  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
+  bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
+  seller <- allocatePartyWithHint "Seller" (PartyIdHint "Seller")
+
+  -- Needed in 2.0, see https://docs.daml.com/tools/navigator/index.html
+  aliceId <- validateUserId "alice"
+  bobId <- validateUserId "bob"
+  sellerId <- validateUserId "seller"
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob]
+  createUser (User sellerId (Some seller)) [CanActAs seller]

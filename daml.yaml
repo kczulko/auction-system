@@ -2,9 +2,10 @@ sdk-version: 2.1.1
 name: auction-system
 source: daml
 version: 0.0.1
+init-script: Main:setup
 dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
 sandbox-options:
-  - --wall-clock-time
+

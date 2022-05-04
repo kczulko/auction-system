@@ -15,7 +15,7 @@ template Auction with
     ensure description /= ""
     signatory seller
 
-    nonconsuming choice InviteBidder: ContractId AuctionInvitation 
+    nonconsuming choice InviteBidder: ContractId AuctionInvitation
         with buyer: Party
         controller seller
           do create AuctionInvitation with buyer; auction = this
@@ -24,7 +24,7 @@ template Auction with
       with bidIds: [ContractId Bid]
       controller seller
         do
-          bids <- mapA fetch bidIds
+          bids <- filter (\b -> b.auction == this) <$> mapA fetch bidIds
           let desc = flip
               byPrice : Bid -> Decimal
               byPrice b = b.offer.price
@@ -39,6 +39,7 @@ template AuctionResult
     winningBid: Optional Bid
   where
     signatory auction.seller
+    observer (optional auction.seller (\b -> b.offer.party) winningBid)
 
 template AuctionInvitation
   with

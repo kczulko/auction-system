@@ -3,13 +3,17 @@ import scala.sys.process._
 name := "auction-system"
 version := "1.0"
 
+cancelable in Global := true
+Compile / run / fork := true
+Compile / run / connectInput := true
+
 scalaVersion := "2.13.8"
 
 libraryDependencies ++= Seq(
-  "com.daml" % "bindings-rxjava" % "2.1.1"
+  "com.daml" % "bindings-rxjava" % "2.1.1",
 )
 
-// autogenerate java bindings during compile time
+ // autogenerate java bindings during compile time
 Compile / sourceGenerators += Def.task {
   val path = (Compile / sourceManaged).value / "java-bindings"
   val projectRoot = (root / baseDirectory).value.getAbsolutePath
@@ -17,10 +21,10 @@ Compile / sourceGenerators += Def.task {
   val build = "daml build"
   val codeGen = s"daml codegen java --output-directory=$path .daml/dist/auction-system-0.0.1.dar"
   // generate files and return them in a Sequence
-  build #&& codeGen
+  (build #&& codeGen)!
 
   val pathDir = new File(path.toString())
-  (pathDir ** (-DirectoryFilter)).get.toSeq
+    (pathDir ** (-DirectoryFilter)).get.toSeq
 }.taskValue
 
 // Reference: https://docs.scala-lang.org/overviews/compiler-options/index.html
