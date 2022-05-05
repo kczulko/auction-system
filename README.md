@@ -4,15 +4,15 @@
 
 1. Start daml: `daml start --sandbox-port 7600 --start-navigator false`
 1. Start `sbt` (interactive mode) within three terminal windows.
-1. Execute following command
+1. Execute following commands:
 ```bash
-# window one, Seller terminal
+# terminal one, Seller's terminal
 sbt:auction-system> run -s "Jacek Malczewski, Vicious Circle"
 
-# window two, Alice' terminal
+# terminal two, Alice's terminal
 sbt:auction-system> run -b alice
 
-# window three, Bob's terminal
+# terminal three, Bob's terminal
 sbt:auction-system> run -b bob
 ```
-1. Send invitation from the `Seller` terminal and submit bids for either `Alice` or `Bob`
+1. Send invitation from the `Seller` terminal. Accept it under `Alice` and `Bob` windows, and submit some bids.
