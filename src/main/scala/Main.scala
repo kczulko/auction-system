@@ -46,28 +46,31 @@ object Main {
   val bobParty = userManagementClient.getUser(new GetUserRequest(bobUser)).blockingGet().getUser().getPrimaryParty().get();
   val sellerParty = userManagementClient.getUser(new GetUserRequest(sellerUser)).blockingGet().getUser().getPrimaryParty().get()
 
-  def startAuction(auction: Auction) = 
-    client.getCommandClient().submitAndWait(
+  def startAuction(auction: Auction): Auction.ContractId = {
+    client.getCommandClient().submitAndWaitForTransaction(
       "auction-creation",
       appId,
       UUID.randomUUID().toString(),
       sellerParty,
       Collections.singletonList(auction.create())
     ).blockingGet()
-  
-  def inviteBidders(auction: Auction) = {
+      .getEvents().asScala
+      .map(event => new Auction.ContractId(event.getContractId()))
+      .head
+  }
+
+  def inviteBidders(auction: Auction.ContractId) =
     Seq(aliceParty, bobParty).foreach { party =>
       client.getCommandClient().submitAndWait(
         s"auctionInvitation-$party",
         appId,
         UUID.randomUUID().toString(),
         sellerParty,
-        Collections.singletonList(auction.createAndExerciseInviteBidder(party))
+        Collections.singletonList(auction.exerciseInviteBidder(party))
       ).blockingGet()
     }
-  }
 
-  def terminateAuction(auction: Auction) = {
+  def terminateAuction(auction: Auction.ContractId) = {
     val map = new java.util.HashMap[String, Filter]()
     map.put(sellerParty, NoFilter.instance)
 
@@ -89,7 +92,7 @@ object Main {
         appId,
         UUID.randomUUID().toString(),
         sellerParty,
-        Collections.singletonList(auction.createAndExerciseEndAuction(bids))
+        Collections.singletonList(auction.exerciseEndAuction(bids))
     ).toFlowable().flatMap(transaction =>
       Flowable.fromArray(
         transaction.getEvents().asScala
@@ -110,6 +113,7 @@ object Main {
 
   def runSeller(auctionDesc: String) = {
     val auction = new Auction(sellerParty, auctionDesc)
+    val auctionId = startAuction(auction)
 
     def options(st: SellerState): Unit = {
       println("Options:")
@@ -124,13 +128,13 @@ object Main {
 
     def loop(st: SellerState): Nothing = {
       options(st)
+
       readLine().strip() match {
         case "i" if st == Initial =>
-          startAuction(auction)
-          inviteBidders(auction)
+          inviteBidders(auctionId)
           loop(BiddersInvited)
         case "t" =>
-          terminateAuction(auction)
+          terminateAuction(auctionId)
           sys.exit(0)
         case _ => loop(st)
       }

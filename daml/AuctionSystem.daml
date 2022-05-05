@@ -8,12 +8,17 @@ comparing f x y = compare (f x) (f y)
 instance Semigroup b => Semigroup (a -> a -> b) where
   (<>) f g = \x y -> f x y <> g x y
 
+type AuctionKey = (Party, Text)
+
 template Auction with
     seller : Party
     description : Text
   where
     ensure description /= ""
     signatory seller
+
+    key (seller, description): AuctionKey
+    maintainer key._1
 
     nonconsuming choice InviteBidder: ContractId AuctionInvitation
         with buyer: Party

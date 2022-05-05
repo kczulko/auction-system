@@ -105,6 +105,16 @@ test_noBidsNoResult = do
   assertEq expected result
 
 
+test_cannotCreateTwoAuctionWithTheSameSellerAndDesc: Script ()
+test_cannotCreateTwoAuctionWithTheSameSellerAndDesc = do
+  seller <- allocatePartyWithHint "Seller" (PartyIdHint "Seller")
+  let auctionData = Auction with seller; description = "Jacek Malczewski, Self-portrait"
+  auctionId <- submit seller do
+    createCmd auctionData
+  submitMustFail seller do
+    createCmd auctionData
+
+
 setup : Script()
 setup = script do
   -- Set up parties
