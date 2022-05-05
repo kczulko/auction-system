@@ -1,4 +1,6 @@
+import sbt.nio.FileStamper
 import scala.sys.process._
+import sbt.nio.file.FileTreeView
 
 name := "auction-system"
 version := "1.0"
@@ -15,16 +17,25 @@ libraryDependencies ++= Seq(
 
  // autogenerate java bindings during compile time
 Compile / sourceGenerators += Def.task {
-  val path = (Compile / sourceManaged).value / "java-bindings"
-  val projectRoot = (root / baseDirectory).value.getAbsolutePath
-  println(projectRoot)
-  val build = "daml build"
-  val codeGen = s"daml codegen java --output-directory=$path .daml/dist/auction-system-0.0.1.dar"
-  // generate files and return them in a Sequence
-  (build #&& codeGen)!
 
-  val pathDir = new File(path.toString())
-    (pathDir ** (-DirectoryFilter)).get.toSeq
+  val cachedFun = FileFunction.cached(
+    streams.value.cacheDirectory / "daml-files-input-cache"
+  ) { (in: Set[File]) =>
+    val path = (Compile / sourceManaged).value / "java-bindings"
+    val projectRoot = (root / baseDirectory).value.getAbsolutePath
+    println(projectRoot)
+    val build = "daml build"
+    val codeGen = s"daml codegen java --output-directory=$path .daml/dist/auction-system-0.0.1.dar"
+    // generate files and return them in a Sequence
+    (build #&& codeGen)!
+
+    val pathDir = new File(path.toString())
+    (pathDir ** (-DirectoryFilter)).get.toSet
+  }
+
+  val damlGlob = baseDirectory.value.toGlob / "daml" / ** / "*.daml"
+  val damlFilePaths: Set[File] = FileTreeView.default.list(damlGlob).map(_._1).map(_.toFile()).toSet
+  cachedFun(damlFilePaths).toSeq
 }.taskValue
 
 // Reference: https://docs.scala-lang.org/overviews/compiler-options/index.html
