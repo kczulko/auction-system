@@ -34,7 +34,7 @@ template Auction with
               byPrice : Bid -> Decimal
               byPrice b = b.offer.price
               byTime : Bid -> Time
-              byTime b = b.time
+              byTime = time
               winningBid = maximumBy (comparing byPrice <> desc (comparing byTime)) bids
           create AuctionResult with auction = this; winningBid
 
